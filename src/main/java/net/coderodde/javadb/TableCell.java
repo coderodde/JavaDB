@@ -6,6 +6,8 @@ public class TableCell {
 
     private Integer intValue;
     private Long longValue;
+    private Float floatValue;
+    private Double doubleValue;
     private String stringValue;
     private Boolean booleanValue;
     private byte[] binaryData;
@@ -19,6 +21,16 @@ public class TableCell {
     public TableCell(Long longValue) {
         this.longValue = longValue;
         tableCellType = TableCellType.TYPE_LONG;
+    }
+    
+    public TableCell(Float floatValue) {
+        this.floatValue = floatValue;
+        tableCellType = TableCellType.TYPE_FLOAT;
+    }
+    
+    public TableCell(Double doubleValue) {
+        this.doubleValue = doubleValue;
+        tableCellType = TableCellType.TYPE_DOUBLE;
     }
     
     public TableCell(String stringValue) {
@@ -41,6 +53,7 @@ public class TableCell {
     }
     
     public void setTableCellType(TableCellType tableCellType) {
+        nullify();
         this.tableCellType =
                 Objects.requireNonNull(tableCellType, 
                                        "The table cell type is null.");
@@ -54,6 +67,16 @@ public class TableCell {
     public Long getLongValue() {
         checkTypesMatchOnRead(TableCellType.TYPE_LONG);
         return longValue;
+    }
+    
+    public Float getFloatValue() {
+        checkTypesMatchOnRead(TableCellType.TYPE_FLOAT);
+        return floatValue;
+    }
+    
+    public Double getDoubleValue() {
+        checkTypesMatchOnRead(TableCellType.TYPE_DOUBLE);
+        return doubleValue;
     }
     
     public String getStringValue() {
@@ -81,6 +104,16 @@ public class TableCell {
         this.longValue = longValue;
     }
     
+    public void setFloatValue(Float floatValue) {
+        checkTypesMatchOnWrite(TableCellType.TYPE_FLOAT);
+        this.floatValue = floatValue;
+    }
+    
+    public void setDoubleValue(Double doubleValue) {
+        checkTypesMatchOnWrite(TableCellType.TYPE_DOUBLE);
+        this.doubleValue = doubleValue;
+    }
+    
     public void setStringValue(String stringValue) {
         checkTypesMatchOnWrite(TableCellType.TYPE_STRING);
         this.stringValue = stringValue;
@@ -96,6 +129,7 @@ public class TableCell {
         this.binaryData = binaryData;
     }
     
+    @SuppressWarnings("UnnecessaryReturnStatement")
     public void nullify() {
         switch (tableCellType) {
             case TYPE_INT:
@@ -104,6 +138,14 @@ public class TableCell {
                 
             case TYPE_LONG:
                 longValue = null;
+                return;
+                
+            case TYPE_FLOAT:
+                floatValue = null;
+                return;
+                
+            case TYPE_DOUBLE:
+                doubleValue = null;
                 return;
                 
             case TYPE_STRING:

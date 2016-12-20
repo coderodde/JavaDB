@@ -19,19 +19,29 @@ public enum TableCellType {
     TYPE_LONG    ((byte) 2, "a long integer"),
     
     /**
+     * 32-bit floating point number.
+     */
+    TYPE_FLOAT   ((byte) 3, "a float number"),
+    
+    /**
+     * 64-bit floating point number.
+     */
+    TYPE_DOUBLE  ((byte) 4, "a double number"),
+    
+    /**
      * Variable length string.
      */
-    TYPE_STRING  ((byte) 3, "a string"),
+    TYPE_STRING  ((byte) 5, "a string"),
     
     /**
      * A boolean value.
      */
-    TYPE_BOOLEAN ((byte) 4, "a boolean"),
+    TYPE_BOOLEAN ((byte) 6, "a boolean"),
     
     /**
      * Binary data (BLOB).
      */
-    TYPE_BINARY  ((byte) 5, "a binary object");
+    TYPE_BINARY  ((byte) 7, "a binary object");
     
     /**
      * The actual type ID identifier.
@@ -57,12 +67,18 @@ public enum TableCellType {
                 return TYPE_LONG;
                 
             case 3:
-                return TYPE_STRING;
+                return TYPE_FLOAT;
                 
             case 4:
-                return TYPE_BOOLEAN;
+                return TYPE_DOUBLE;
                 
             case 5:
+                return TYPE_STRING;
+                
+            case 6:
+                return TYPE_BOOLEAN;
+                
+            case 7:
                 return TYPE_BINARY;
                 
             default:
