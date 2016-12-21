@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import net.coderodde.javadb.Misc.Pair;
 
 /**
  * This class implements an individual table cell.
@@ -23,16 +24,13 @@ public final class TableCell {
     private static final byte BOOLEAN_NULL = 6;
     private static final byte BLOB_NULL    = 7;
     
-    private static final byte INT_NOT_NULL     = INT_NULL     & NON_NULL_MASK;
-    private static final byte LONG_NOT_NULL    = LONG_NULL    & NON_NULL_MASK;
-    private static final byte FLOAT_NOT_NULL   = FLOAT_NULL   & NON_NULL_MASK;
-    private static final byte DOUBLE_NOT_NULL  = DOUBLE_NULL  & NON_NULL_MASK;
-    private static final byte STRING_NOT_NULL  = STRING_NULL  & NON_NULL_MASK;
-    private static final byte BOOLEAN_NOT_NULL = BOOLEAN_NULL & NON_NULL_MASK;
-    private static final byte BLOB_NOT_NULL    = BLOB_NULL    & NON_NULL_MASK;
-    
-    private static final byte IS_NULL = 0;
-    private static final byte IS_NOT_NULL = 1;
+    private static final byte INT_NOT_NULL     = INT_NULL     | NON_NULL_MASK;
+    private static final byte LONG_NOT_NULL    = LONG_NULL    | NON_NULL_MASK;
+    private static final byte FLOAT_NOT_NULL   = FLOAT_NULL   | NON_NULL_MASK;
+    private static final byte DOUBLE_NOT_NULL  = DOUBLE_NULL  | NON_NULL_MASK;
+    private static final byte STRING_NOT_NULL  = STRING_NULL  | NON_NULL_MASK;
+    private static final byte BOOLEAN_NOT_NULL = BOOLEAN_NULL | NON_NULL_MASK;
+    private static final byte BLOB_NOT_NULL    = BLOB_NULL    | NON_NULL_MASK;
     
     private static final byte BOOLEAN_TRUE = 1;
     private static final byte BOOLEAN_FALSE = 0;
@@ -303,14 +301,237 @@ public final class TableCell {
         }
         
         byte[] data = (byte[]) value;
-        List<Byte> byteList = new ArrayList<>(data.length + 1);
+        List<Byte> byteList = new ArrayList<>(data.length + Integer.BYTES + 1);
         byteList.add(BLOB_NOT_NULL);
         
+        int blobLength = data.length;
+        
+        // Emit the length of the BLOB byte array:
+        byteList.add((byte)(blobLength & 0xff));
+        byteList.add((byte)((blobLength >>> 8) & 0xff));
+        byteList.add((byte)((blobLength >>> 16) & 0xff));
+        byteList.add((byte)((blobLength >>> 24) & 0xff));
+        
+        // Emit the actual byte array:
         for (byte b : data) {
             byteList.add(b);
         }
         
         return byteList;
+    }
+    
+    public static Pair<TableCell, Integer> deserialize(byte[] data,
+                                                       int startIndex) {
+        Objects.requireNonNull(data, "The input data byte array is null.");
+        checkDeserializationIndex(data, startIndex);
+        
+        byte tableCellType = data[startIndex++];
+        
+        switch (tableCellType) {
+            case INT_NOT_NULL:
+                return deserializeInt(data, startIndex);
+                
+            case LONG_NOT_NULL:
+                return deserializeLong(data, startIndex);
+                
+            case FLOAT_NOT_NULL:
+                return deserializeFloat(data, startIndex);
+                
+            case DOUBLE_NOT_NULL:
+                return deserializeDouble(data, startIndex);
+                
+            case STRING_NOT_NULL:
+                return deserializeString(data, startIndex);
+                
+            case BOOLEAN_NOT_NULL:
+                return deserializeBoolean(data, startIndex);
+        }
+        
+        return null;
+    }
+    
+    private static Pair<TableCell, Integer> deserializeInt(byte[] data,
+                                                           int startIndex) {
+        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
+        int value;
+        
+        byte byte1 = data[startIndex];
+        byte byte2 = data[startIndex + 1];
+        byte byte3 = data[startIndex + 2];
+        byte byte4 = data[startIndex + 3];
+        
+        value  =  Byte.toUnsignedInt(byte1);
+        value |= (Byte.toUnsignedInt(byte2) << 8);
+        value |= (Byte.toUnsignedInt(byte3) << 16);
+        value |= (Byte.toUnsignedInt(byte4) << 24);
+        
+        value |= (((int)(byte2)) << 8);
+        value |= (((int)(byte3)) << 16);
+        value |= (((int)(byte4)) << 24);
+        
+        TableCell tableCell = new TableCell(value);
+        return new Pair<>(tableCell, Integer.BYTES);
+    }
+    
+    private static Pair<TableCell, Integer> deserializeLong(byte[] data,
+                                                            int startIndex) {
+        checkTableCellValueFitsInData(data, startIndex, Long.BYTES);
+        long value;
+        
+        byte byte1 = data[startIndex];
+        byte byte2 = data[startIndex + 1];
+        byte byte3 = data[startIndex + 2];
+        byte byte4 = data[startIndex + 3];
+        byte byte5 = data[startIndex + 4];
+        byte byte6 = data[startIndex + 5];
+        byte byte7 = data[startIndex + 6];
+        byte byte8 = data[startIndex + 7];
+        
+        value  =  Byte.toUnsignedLong(byte1);
+        value |= (Byte.toUnsignedLong(byte2) << 8);
+        value |= (Byte.toUnsignedLong(byte3) << 16);
+        value |= (Byte.toUnsignedLong(byte4) << 24);
+        value |= (Byte.toUnsignedLong(byte5) << 32);
+        value |= (Byte.toUnsignedLong(byte6) << 40);
+        value |= (Byte.toUnsignedLong(byte7) << 48);
+        value |= (Byte.toUnsignedLong(byte8) << 56);
+        
+        TableCell tableCell = new TableCell(value);
+        return new Pair<>(tableCell, Long.BYTES);
+    }
+    
+    private static Pair<TableCell, Integer> deserializeFloat(byte[] data,
+                                                             int startIndex) {
+        checkTableCellValueFitsInData(data, startIndex, Float.BYTES);
+        
+        byte byte1 = data[startIndex];
+        byte byte2 = data[startIndex + 1];
+        byte byte3 = data[startIndex + 2];
+        byte byte4 = data[startIndex + 3];
+        
+        int floatValueAsInt = 0;
+        
+        floatValueAsInt  =  Byte.toUnsignedInt(byte1);
+        floatValueAsInt |= (Byte.toUnsignedInt(byte2) << 8);
+        floatValueAsInt |= (Byte.toUnsignedInt(byte3) << 16);
+        floatValueAsInt |= (Byte.toUnsignedInt(byte4) << 24);
+        
+        float value = Float.intBitsToFloat(floatValueAsInt);
+        TableCell tableCell = new TableCell(value);
+        return new Pair<>(tableCell, Float.BYTES);
+    }
+    
+    private static Pair<TableCell, Integer> deserializeDouble(byte[] data,
+                                                              int startIndex) {
+        checkTableCellValueFitsInData(data, startIndex, Double.BYTES);
+        
+        byte byte1 = data[startIndex];
+        byte byte2 = data[startIndex + 1];
+        byte byte3 = data[startIndex + 2];
+        byte byte4 = data[startIndex + 3];
+        byte byte5 = data[startIndex + 4];
+        byte byte6 = data[startIndex + 5];
+        byte byte7 = data[startIndex + 6];
+        byte byte8 = data[startIndex + 7];
+        
+        long doubleValueAsLong = 0L;
+        
+        doubleValueAsLong  =  Byte.toUnsignedLong(byte1);
+        doubleValueAsLong |= (Byte.toUnsignedLong(byte2) << 8);
+        doubleValueAsLong |= (Byte.toUnsignedLong(byte3) << 16);
+        doubleValueAsLong |= (Byte.toUnsignedLong(byte4) << 24);
+        doubleValueAsLong |= (Byte.toUnsignedLong(byte5) << 32);
+        doubleValueAsLong |= (Byte.toUnsignedLong(byte6) << 40);
+        doubleValueAsLong |= (Byte.toUnsignedLong(byte7) << 48);
+        doubleValueAsLong |= (Byte.toUnsignedLong(byte8) << 56);
+        
+        double value = Double.longBitsToDouble(doubleValueAsLong);
+        TableCell tableCell = new TableCell(value);
+        return new Pair<>(tableCell, Double.BYTES);
+    }
+    
+    private static Pair<TableCell, Integer> deserializeString(byte[] data,
+                                                              int startIndex) {
+        // First check that the string length descriptor fits in:
+        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
+        
+        // Get the string length:
+        byte byte1 = data[startIndex];
+        byte byte2 = data[startIndex + 1];
+        byte byte3 = data[startIndex + 2];
+        byte byte4 = data[startIndex + 3];
+        
+        int stringLength = Byte.toUnsignedInt(byte1);
+        stringLength |= (Byte.toUnsignedInt(byte2) << 8);
+        stringLength |= (Byte.toUnsignedInt(byte3) << 16);
+        stringLength |= (Byte.toUnsignedInt(byte4) << 24);
+        
+        // Now check whether the actual string fits in the data array:
+        checkTableCellValueFitsInData(data,
+                                      startIndex += Integer.BYTES, 
+                                      stringLength * Character.BYTES);
+        
+        StringBuilder sb = new StringBuilder(stringLength);
+        
+        for (int charIndex = 0; 
+                charIndex != stringLength; 
+                charIndex++, startIndex += 2) {
+            byte1 = data[startIndex];
+            byte2 = data[startIndex + 1];
+            char c = (char)((Byte.toUnsignedInt(byte2) << 8) |
+                             Byte.toUnsignedInt(byte1));
+            sb.append(c);
+        }
+        
+        TableCell tableCell = new TableCell(sb.toString());
+        return new Pair<>(tableCell, 
+                          Integer.BYTES + stringLength * Character.BYTES);
+    }
+    
+    private static Pair<TableCell, Integer> deserializeBoolean(byte[] data,
+                                                               int startIndex) {
+        checkTableCellValueFitsInData(data, startIndex, 1);
+        boolean value;
+        
+        switch (data[startIndex]) {
+            case BOOLEAN_TRUE:
+                value = true;
+                break;
+                
+            case BOOLEAN_FALSE:
+                value = false;
+                break;
+                
+            default:
+                throw new IllegalStateException(
+                        "Unknown boolean literal encoding.");
+        }
+        
+        TableCell tableCell = new TableCell(value);
+        return new Pair<>(tableCell, 1);
+    }
+    
+    private static void checkTableCellValueFitsInData(byte[] data,
+                                                      int startIndex,
+                                                      int cellValueLength) {
+        if (startIndex + cellValueLength > data.length) {
+            throw new IllegalArgumentException(
+                    "The data of expected length does not fit in the byte " +
+                    "array.");
+        }
+    }
+    
+    private static void checkDeserializationIndex(byte[] data, int startIndex) {
+        if (startIndex < 0) {
+            throw new IndexOutOfBoundsException(
+                    "The start index is negative: " + startIndex + ".");
+        }
+        
+        if (startIndex >= data.length) {
+            throw new IndexOutOfBoundsException(
+                    "The start index is too large: " + startIndex + ". " +
+                    "The length of the data is " + data.length + " bytes.");
+        }
     }
     
     private void checkTypesMatchOnRead(TableCellType requestedType) {
