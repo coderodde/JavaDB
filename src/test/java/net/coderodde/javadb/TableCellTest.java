@@ -9,6 +9,8 @@ import static org.junit.Assert.*;
 
 public class TableCellTest {
     
+    private TableCell tableCell;
+    
     public TableCellTest() {
     }
     
@@ -30,7 +32,7 @@ public class TableCellTest {
 
     @Test
     public void testGetTableCellType() {
-        TableCell tableCell = new TableCell(TableCellType.TYPE_BINARY);
+        tableCell = new TableCell(TableCellType.TYPE_BINARY);
         
         assertEquals(TableCellType.TYPE_BINARY, tableCell.getTableCellType());
         
@@ -75,19 +77,31 @@ public class TableCellTest {
 
     @Test
     public void testSetTableCellType() {
-        TableCell tableCell = new TableCell(Integer.valueOf(10));
+        tableCell = new TableCell(Integer.valueOf(10));
         tableCell.setTableCellType(TableCellType.TYPE_FLOAT);
         assertNull(tableCell.getFloatValue());
     }
 
     @Test
     public void testGetIntValue() {
-        
+        tableCell = new TableCell(11);
+        assertEquals(Integer.valueOf(11), tableCell.getIntValue());
+        tableCell.setIntValue(12);
+        assertEquals(Integer.valueOf(12), tableCell.getIntValue());
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testGetIntValueThrowsOnWrongType() {
+        tableCell = new TableCell(11);
+        tableCell.getBooleanValue();
     }
 
     @Test
     public void testGetLongValue() {
-        
+        tableCell = new TableCell(111L);
+        assertEquals(Long.valueOf(111L), tableCell.getLongValue());
+        tableCell.setLongValue(123L);
+        assertEquals(Long.valueOf(123L), tableCell.getLongValue());
     }
 
     @Test
