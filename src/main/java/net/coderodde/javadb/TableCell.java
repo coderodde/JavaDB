@@ -1,50 +1,59 @@
 package net.coderodde.javadb;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
-public class TableCell {
+/**
+ * This class implements an individual table cell.
+ * 
+ * @author Rodion "rodde" Efremov
+ * @version 1.6 (Dec 21, 2016)
+ */
+public final class TableCell {
+    
+    private static final byte IS_NULL = 0;
+    private static final byte IS_NOT_NULL = 1;
+    
+    private static final byte BOOLEAN_TRUE = 1;
+    private static final byte BOOLEAN_FALSE = 0;
 
-    private Integer intValue;
-    private Long longValue;
-    private Float floatValue;
-    private Double doubleValue;
-    private String stringValue;
-    private Boolean booleanValue;
-    private byte[] binaryData;
+    private Object value;
     private TableCellType tableCellType;
     
     public TableCell(Integer intValue) {
-        this.intValue = intValue;
+        this.value = intValue;
         tableCellType = TableCellType.TYPE_INT;
     }
     
     public TableCell(Long longValue) {
-        this.longValue = longValue;
+        this.value = longValue;
         tableCellType = TableCellType.TYPE_LONG;
     }
     
     public TableCell(Float floatValue) {
-        this.floatValue = floatValue;
+        this.value = floatValue;
         tableCellType = TableCellType.TYPE_FLOAT;
     }
     
     public TableCell(Double doubleValue) {
-        this.doubleValue = doubleValue;
+        this.value = doubleValue;
         tableCellType = TableCellType.TYPE_DOUBLE;
     }
     
     public TableCell(String stringValue) {
-        this.stringValue = stringValue;
+        this.value = stringValue;
         tableCellType = TableCellType.TYPE_STRING;
     }
     
     public TableCell(Boolean booleanValue) {
-        this.booleanValue = booleanValue;
+        this.value = booleanValue;
         tableCellType = TableCellType.TYPE_BOOLEAN;
     }
     
     public TableCell(byte[] binaryData) {
-        this.binaryData = binaryData;
+        this.value = binaryData;
         tableCellType = TableCellType.TYPE_BINARY;
     }
     
@@ -61,105 +70,228 @@ public class TableCell {
     
     public Integer getIntValue() {
         checkTypesMatchOnRead(TableCellType.TYPE_INT);
-        return intValue;
+        return (Integer) value;
     }
     
     public Long getLongValue() {
         checkTypesMatchOnRead(TableCellType.TYPE_LONG);
-        return longValue;
+        return (Long) value;
     }
     
     public Float getFloatValue() {
         checkTypesMatchOnRead(TableCellType.TYPE_FLOAT);
-        return floatValue;
+        return (Float) value;
     }
     
     public Double getDoubleValue() {
         checkTypesMatchOnRead(TableCellType.TYPE_DOUBLE);
-        return doubleValue;
+        return (Double) value;
     }
     
     public String getStringValue() {
         checkTypesMatchOnRead(TableCellType.TYPE_STRING);
-        return stringValue;
+        return (String) value;
     }
     
     public Boolean getBooleanValue() {
         checkTypesMatchOnRead(TableCellType.TYPE_BOOLEAN);
-        return booleanValue;
+        return (Boolean) value;
     }
     
     public byte[] getBinaryData() {
         checkTypesMatchOnRead(TableCellType.TYPE_BINARY);
-        return binaryData;
+        return (byte[]) value;
     }
     
     public void setIntValue(Integer intValue) {
         checkTypesMatchOnWrite(TableCellType.TYPE_INT);
-        this.intValue = intValue;
+        this.value = intValue;
     }
     
     public void setLongValue(Long longValue) {
         checkTypesMatchOnWrite(TableCellType.TYPE_LONG);
-        this.longValue = longValue;
+        this.value = longValue;
     }
     
     public void setFloatValue(Float floatValue) {
         checkTypesMatchOnWrite(TableCellType.TYPE_FLOAT);
-        this.floatValue = floatValue;
+        this.value = floatValue;
     }
     
     public void setDoubleValue(Double doubleValue) {
         checkTypesMatchOnWrite(TableCellType.TYPE_DOUBLE);
-        this.doubleValue = doubleValue;
+        this.value = doubleValue;
     }
     
     public void setStringValue(String stringValue) {
         checkTypesMatchOnWrite(TableCellType.TYPE_STRING);
-        this.stringValue = stringValue;
+        this.value = stringValue;
     }
     
     public void setBooleanValue(Boolean booleanValue) {
         checkTypesMatchOnWrite(TableCellType.TYPE_BOOLEAN);
-        this.booleanValue = booleanValue;
+        this.value = booleanValue;
     }
     
     public void setBinaryData(byte[] binaryData) {
         checkTypesMatchOnWrite(TableCellType.TYPE_BINARY);
-        this.binaryData = binaryData;
+        this.value = binaryData;
     }
     
-    @SuppressWarnings("UnnecessaryReturnStatement")
     public void nullify() {
-        switch (tableCellType) {
+        value = null;
+    }
+    
+    public List<Byte> serialize() {
+        switch (getTableCellType()) {
             case TYPE_INT:
-                intValue = null;
-                return;
+                return serializeInt();
                 
             case TYPE_LONG:
-                longValue = null;
-                return;
+                return serializeLong();
                 
             case TYPE_FLOAT:
-                floatValue = null;
-                return;
+                return serializeFloat();
                 
             case TYPE_DOUBLE:
-                doubleValue = null;
-                return;
+                return serializeDouble();
                 
             case TYPE_STRING:
-                stringValue = null;
-                return;
+                return serializeString();
                 
             case TYPE_BOOLEAN:
-                booleanValue = null;
-                return;
+                return serializeBoolean();
                 
             case TYPE_BINARY:
-                binaryData = null;
-                return;
+                return serializeBinaryData();
+                
+            default:
+                throw new IllegalStateException(
+                        "This exception must never be thrown. One " + 
+                        "possibility is that a new data type is introduced, " + 
+                        "yet is not handled in this method.");
         }
+    }
+    
+    private List<Byte> serializeInt() {
+        if (value == null) {
+            return Arrays.asList(IS_NULL);
+        }
+        
+        List<Byte> byteList = new ArrayList<>(Integer.BYTES + 1);
+        int primitiveValue = (Integer) value;
+        byteList.add(IS_NOT_NULL);
+        
+        for (int i = 0; i != Integer.BYTES; ++i, primitiveValue >>>= 8) {
+            byteList.add((byte)(primitiveValue & 0xff));
+        }
+        
+        return byteList;
+    }
+    
+    private List<Byte> serializeLong() {
+        if (value == null) {
+            return Arrays.asList(IS_NULL);
+        }
+        
+        List<Byte> byteList = new ArrayList<>(Long.BYTES + 1);
+        long primitiveValue = (Long) value;
+        byteList.add(IS_NOT_NULL);
+        
+        for (int i = 0; i != Long.BYTES; ++i, primitiveValue >>>= 8) {
+            byteList.add((byte)(primitiveValue & 0xffL));
+        }
+            
+        return byteList;
+    }
+    
+    private List<Byte> serializeFloat() {
+        if (value == null) {
+            return Arrays.asList(IS_NULL);
+        }
+        
+        List<Byte> byteList = new ArrayList<>(Float.BYTES + 1);
+        int primitiveValue = Float.floatToIntBits((Float) value);
+        byteList.add(IS_NOT_NULL);
+        
+        for (int i = 0; i != Float.BYTES; ++i, primitiveValue >>>= 8) {
+            byteList.add((byte)(primitiveValue & 0xff));
+        }
+        
+        return byteList;
+    }
+    
+    private List<Byte> serializeDouble() {
+        if (value == null) {
+            return Arrays.asList(IS_NULL);
+        } 
+        
+        List<Byte> byteList = new ArrayList<>(Double.BYTES + 1);
+        long primitiveValue = Double.doubleToLongBits((Double) value);
+        byteList.add(IS_NOT_NULL);
+        
+        for (int i = 0; i != Double.BYTES; ++i, primitiveValue >>>= 8) {
+            byteList.add((byte)(primitiveValue & 0xffL));
+        }
+        
+        return byteList;
+    }
+    
+    private List<Byte> serializeString() {
+        if (value == null) {
+            return Arrays.asList(IS_NULL);
+        }
+        
+        String string = (String) value;
+        List<Byte> byteList = 
+                new ArrayList<>(Character.BYTES * string.length() + 1);
+        byteList.add(IS_NOT_NULL);
+        
+        int stringLength = string.length();
+        
+        // Emit the string length in characters:
+        byteList.add((byte) (stringLength & 0xff));
+        byteList.add((byte)((stringLength >>> 8)  & 0xff));
+        byteList.add((byte)((stringLength >>> 16) & 0xff));
+        byteList.add((byte)((stringLength >>> 24) & 0xff));
+        
+        // Emit the actual string:
+        for (int i = 0; i != stringLength; ++i) {
+            char c = string.charAt(i);
+            short binaryChar = (short) c;
+            
+            byteList.add((byte)(binaryChar & 0xff));
+            byteList.add((byte)((binaryChar >>> 8) & 0xff));
+        }
+        
+        return byteList;
+    }
+    
+    private List<Byte> serializeBoolean() {
+        if (value == null) {
+            return Arrays.asList(IS_NULL);
+        }
+        
+        List<Byte> byteList = new ArrayList<>(2);
+        byteList.add(IS_NOT_NULL);
+        byteList.add((Boolean) value ? BOOLEAN_TRUE : BOOLEAN_FALSE);
+        return byteList;
+    }
+    
+    private List<Byte> serializeBinaryData() {
+        if (value == null) {
+            return Arrays.asList(IS_NULL);
+        }
+        
+        byte[] data = (byte[]) value;
+        List<Byte> byteList = new ArrayList<>(data.length + 1);
+        byteList.add(IS_NOT_NULL);
+        
+        for (byte b : data) {
+            byteList.add(b);
+        }
+        
+        return byteList;
     }
     
     private void checkTypesMatchOnRead(TableCellType requestedType) {
