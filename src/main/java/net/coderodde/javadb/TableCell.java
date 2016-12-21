@@ -73,6 +73,17 @@ public final class TableCell {
         tableCellType = TableCellType.TYPE_BINARY;
     }
     
+    /**
+     * Constructs a new table cell of particular data type with {@code null} 
+     * value.
+     * 
+     * @param tableCellType the type of the cell.
+     */
+    public TableCell(TableCellType tableCellType) {
+        this.tableCellType = Objects.requireNonNull(tableCellType,
+                                                    "Table cell type is null.");
+    }
+    
     public TableCellType getTableCellType() {
         return tableCellType;
     }
@@ -323,7 +334,7 @@ public final class TableCell {
     public static Pair<TableCell, Integer> deserialize(byte[] data,
                                                        int startIndex) {
         Objects.requireNonNull(data, "The input data byte array is null.");
-        checkDeserializationIndex(data, startIndex);
+        checkTableCellValueFitsInData(data, startIndex, 1);
         
         byte tableCellType = data[startIndex++];
         
@@ -345,9 +356,35 @@ public final class TableCell {
                 
             case BOOLEAN_NOT_NULL:
                 return deserializeBoolean(data, startIndex);
+                
+            case BLOB_NOT_NULL:
+                return deserializeBinaryData(data, startIndex);
+                
+            case INT_NULL:
+                return new Pair<>(new TableCell(TableCellType.TYPE_INT), 0);
+                
+            case LONG_NULL:
+                return new Pair<>(new TableCell(TableCellType.TYPE_LONG), 0);
+                
+            case FLOAT_NULL:
+                return new Pair<>(new TableCell(TableCellType.TYPE_FLOAT), 0);
+                
+            case DOUBLE_NULL:
+                return new Pair<>(new TableCell(TableCellType.TYPE_DOUBLE), 0);
+                
+            case STRING_NULL:
+                return new Pair<>(new TableCell(TableCellType.TYPE_STRING), 0);
+                
+            case BOOLEAN_NULL:
+                return new Pair<>(new TableCell(TableCellType.TYPE_BOOLEAN), 0);
+                
+            case BLOB_NULL:
+                return new Pair<>(new TableCell(TableCellType.TYPE_BINARY), 0);
+                
+            default:
+                throw new IllegalStateException(
+                        "Invalid table cell type descriptor.");
         }
-        
-        return null;
     }
     
     private static Pair<TableCell, Integer> deserializeInt(byte[] data,
@@ -450,12 +487,7 @@ public final class TableCell {
         return new Pair<>(tableCell, Double.BYTES);
     }
     
-    private static Pair<TableCell, Integer> deserializeString(byte[] data,
-                                                              int startIndex) {
-        // First check that the string length descriptor fits in:
-        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
-        
-        // Get the string length:
+    private static int getLengthFromByteArray(byte[] data, int startIndex) {
         byte byte1 = data[startIndex];
         byte byte2 = data[startIndex + 1];
         byte byte3 = data[startIndex + 2];
@@ -465,6 +497,17 @@ public final class TableCell {
         stringLength |= (Byte.toUnsignedInt(byte2) << 8);
         stringLength |= (Byte.toUnsignedInt(byte3) << 16);
         stringLength |= (Byte.toUnsignedInt(byte4) << 24);
+        
+        return stringLength;
+    }
+    
+    private static Pair<TableCell, Integer> deserializeString(byte[] data,
+                                                              int startIndex) {
+        // First check that the string length descriptor fits in:
+        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
+        
+        // Get the string length:
+        int stringLength = getLengthFromByteArray(data, startIndex);
         
         // Now check whether the actual string fits in the data array:
         checkTableCellValueFitsInData(data,
@@ -476,8 +519,8 @@ public final class TableCell {
         for (int charIndex = 0; 
                 charIndex != stringLength; 
                 charIndex++, startIndex += 2) {
-            byte1 = data[startIndex];
-            byte2 = data[startIndex + 1];
+            byte byte1 = data[startIndex];
+            byte byte2 = data[startIndex + 1];
             char c = (char)((Byte.toUnsignedInt(byte2) << 8) |
                              Byte.toUnsignedInt(byte1));
             sb.append(c);
@@ -486,6 +529,24 @@ public final class TableCell {
         TableCell tableCell = new TableCell(sb.toString());
         return new Pair<>(tableCell, 
                           Integer.BYTES + stringLength * Character.BYTES);
+    }
+        
+    private static Pair<TableCell, Integer>
+        deserializeBinaryData(byte[] data, int startIndex) {
+        // First check that the binary byte array length descriptor fits in:
+        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
+        
+        // Get the byte array length:
+        int byteArrayLength = getLengthFromByteArray(data, startIndex);
+        
+        // Now check whether the actual byte array fits in the data array:
+        checkTableCellValueFitsInData(data, 
+                                      startIndex += Integer.BYTES,
+                                      byteArrayLength);
+        
+        byte[] byteArray = new byte[byteArrayLength];
+        TableCell tableCell = new TableCell(byteArray);
+        return new Pair<>(tableCell, Integer.BYTES + byteArrayLength);
     }
     
     private static Pair<TableCell, Integer> deserializeBoolean(byte[] data,
@@ -515,22 +576,11 @@ public final class TableCell {
                                                       int startIndex,
                                                       int cellValueLength) {
         if (startIndex + cellValueLength > data.length) {
-            throw new IllegalArgumentException(
+            throw new BadDataFormatException(
                     "The data of expected length does not fit in the byte " +
-                    "array.");
-        }
-    }
-    
-    private static void checkDeserializationIndex(byte[] data, int startIndex) {
-        if (startIndex < 0) {
-            throw new IndexOutOfBoundsException(
-                    "The start index is negative: " + startIndex + ".");
-        }
-        
-        if (startIndex >= data.length) {
-            throw new IndexOutOfBoundsException(
-                    "The start index is too large: " + startIndex + ". " +
-                    "The length of the data is " + data.length + " bytes.");
+                    "array. Start index: " + startIndex + 
+                    ", cell value length: " + cellValueLength + 
+                    ", data array length: " + data.length);
         }
     }
     
