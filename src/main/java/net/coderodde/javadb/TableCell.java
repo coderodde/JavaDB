@@ -13,6 +13,24 @@ import java.util.Objects;
  */
 public final class TableCell {
     
+    private static final byte NON_NULL_MASK = 0x10;
+    
+    private static final byte INT_NULL     = 1;
+    private static final byte LONG_NULL    = 2;
+    private static final byte FLOAT_NULL   = 3;
+    private static final byte DOUBLE_NULL  = 4;
+    private static final byte STRING_NULL  = 5;
+    private static final byte BOOLEAN_NULL = 6;
+    private static final byte BLOB_NULL    = 7;
+    
+    private static final byte INT_NOT_NULL     = INT_NULL     & NON_NULL_MASK;
+    private static final byte LONG_NOT_NULL    = LONG_NULL    & NON_NULL_MASK;
+    private static final byte FLOAT_NOT_NULL   = FLOAT_NULL   & NON_NULL_MASK;
+    private static final byte DOUBLE_NOT_NULL  = DOUBLE_NULL  & NON_NULL_MASK;
+    private static final byte STRING_NOT_NULL  = STRING_NULL  & NON_NULL_MASK;
+    private static final byte BOOLEAN_NOT_NULL = BOOLEAN_NULL & NON_NULL_MASK;
+    private static final byte BLOB_NOT_NULL    = BLOB_NULL    & NON_NULL_MASK;
+    
     private static final byte IS_NULL = 0;
     private static final byte IS_NOT_NULL = 1;
     
@@ -175,12 +193,12 @@ public final class TableCell {
     
     private List<Byte> serializeInt() {
         if (value == null) {
-            return Arrays.asList(IS_NULL);
+            return Arrays.asList(INT_NULL);
         }
         
         List<Byte> byteList = new ArrayList<>(Integer.BYTES + 1);
         int primitiveValue = (Integer) value;
-        byteList.add(IS_NOT_NULL);
+        byteList.add(INT_NOT_NULL);
         
         for (int i = 0; i != Integer.BYTES; ++i, primitiveValue >>>= 8) {
             byteList.add((byte)(primitiveValue & 0xff));
@@ -191,12 +209,12 @@ public final class TableCell {
     
     private List<Byte> serializeLong() {
         if (value == null) {
-            return Arrays.asList(IS_NULL);
+            return Arrays.asList(LONG_NULL);
         }
         
         List<Byte> byteList = new ArrayList<>(Long.BYTES + 1);
         long primitiveValue = (Long) value;
-        byteList.add(IS_NOT_NULL);
+        byteList.add(LONG_NOT_NULL);
         
         for (int i = 0; i != Long.BYTES; ++i, primitiveValue >>>= 8) {
             byteList.add((byte)(primitiveValue & 0xffL));
@@ -207,12 +225,12 @@ public final class TableCell {
     
     private List<Byte> serializeFloat() {
         if (value == null) {
-            return Arrays.asList(IS_NULL);
+            return Arrays.asList(FLOAT_NULL);
         }
         
         List<Byte> byteList = new ArrayList<>(Float.BYTES + 1);
         int primitiveValue = Float.floatToIntBits((Float) value);
-        byteList.add(IS_NOT_NULL);
+        byteList.add(FLOAT_NOT_NULL);
         
         for (int i = 0; i != Float.BYTES; ++i, primitiveValue >>>= 8) {
             byteList.add((byte)(primitiveValue & 0xff));
@@ -223,12 +241,12 @@ public final class TableCell {
     
     private List<Byte> serializeDouble() {
         if (value == null) {
-            return Arrays.asList(IS_NULL);
+            return Arrays.asList(DOUBLE_NULL);
         } 
         
         List<Byte> byteList = new ArrayList<>(Double.BYTES + 1);
         long primitiveValue = Double.doubleToLongBits((Double) value);
-        byteList.add(IS_NOT_NULL);
+        byteList.add(DOUBLE_NOT_NULL);
         
         for (int i = 0; i != Double.BYTES; ++i, primitiveValue >>>= 8) {
             byteList.add((byte)(primitiveValue & 0xffL));
@@ -239,13 +257,14 @@ public final class TableCell {
     
     private List<Byte> serializeString() {
         if (value == null) {
-            return Arrays.asList(IS_NULL);
+            return Arrays.asList(STRING_NULL);
         }
         
         String string = (String) value;
-        List<Byte> byteList = 
-                new ArrayList<>(Character.BYTES * string.length() + 1);
-        byteList.add(IS_NOT_NULL);
+        // Header byte, 32-bit string length, and actual string:
+        List<Byte> byteList = new ArrayList<>(Character.BYTES * string.length()
+                                              + Integer.BYTES + 1);
+        byteList.add(STRING_NOT_NULL);
         
         int stringLength = string.length();
         
@@ -269,23 +288,23 @@ public final class TableCell {
     
     private List<Byte> serializeBoolean() {
         if (value == null) {
-            return Arrays.asList(IS_NULL);
+            return Arrays.asList(BOOLEAN_NULL);
         }
         
         List<Byte> byteList = new ArrayList<>(2);
-        byteList.add(IS_NOT_NULL);
+        byteList.add(BOOLEAN_NOT_NULL);
         byteList.add((Boolean) value ? BOOLEAN_TRUE : BOOLEAN_FALSE);
         return byteList;
     }
     
     private List<Byte> serializeBinaryData() {
         if (value == null) {
-            return Arrays.asList(IS_NULL);
+            return Arrays.asList(BLOB_NULL);
         }
         
         byte[] data = (byte[]) value;
         List<Byte> byteList = new ArrayList<>(data.length + 1);
-        byteList.add(IS_NOT_NULL);
+        byteList.add(BLOB_NOT_NULL);
         
         for (byte b : data) {
             byteList.add(b);
