@@ -2,6 +2,7 @@ package net.coderodde.javadb;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Objects;
 import net.coderodde.javadb.Misc.Pair;
@@ -32,7 +33,28 @@ public final class TableCell {
     static final byte BOOLEAN_NOT_NULL = BOOLEAN_NULL | NON_NULL_MASK;
     static final byte BLOB_NOT_NULL    = BLOB_NULL    | NON_NULL_MASK;
     
-    private static final byte BOOLEAN_TRUE = 1;
+    static final Integer DEFAULT_INT     = 0;
+    static final Long    DEFAULT_LONG    = 0L;
+    static final Float   DEFAULT_FLOAT   = 0.0f;
+    static final Double  DEFAULT_DOUBLE  = 0.0;
+    static final String  DEFAULT_STRING  = "";
+    static final Boolean DEFAULT_BOOLEAN = Boolean.FALSE;
+    static final byte[]  DEFAULT_BLOB    = new byte[0];
+    
+    static final EnumMap<TableCellType, Object> defaults = 
+             new EnumMap<>(TableCellType.class);
+    
+    static {
+        defaults.put(TableCellType.TYPE_INT,     DEFAULT_INT    );
+        defaults.put(TableCellType.TYPE_LONG,    DEFAULT_LONG   );
+        defaults.put(TableCellType.TYPE_FLOAT,   DEFAULT_FLOAT  );
+        defaults.put(TableCellType.TYPE_DOUBLE,  DEFAULT_DOUBLE );
+        defaults.put(TableCellType.TYPE_STRING,  DEFAULT_STRING );
+        defaults.put(TableCellType.TYPE_BOOLEAN, DEFAULT_BOOLEAN);
+        defaults.put(TableCellType.TYPE_BINARY,  DEFAULT_BLOB   );
+    }
+    
+    private static final byte BOOLEAN_TRUE  = 1;
     private static final byte BOOLEAN_FALSE = 0;
 
     private Object value;
