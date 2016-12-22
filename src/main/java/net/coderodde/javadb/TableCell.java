@@ -16,21 +16,21 @@ public final class TableCell {
     
     private static final byte NON_NULL_MASK = 0x10;
     
-    private static final byte INT_NULL     = 1;
-    private static final byte LONG_NULL    = 2;
-    private static final byte FLOAT_NULL   = 3;
-    private static final byte DOUBLE_NULL  = 4;
-    private static final byte STRING_NULL  = 5;
-    private static final byte BOOLEAN_NULL = 6;
-    private static final byte BLOB_NULL    = 7;
-    
-    private static final byte INT_NOT_NULL     = INT_NULL     | NON_NULL_MASK;
-    private static final byte LONG_NOT_NULL    = LONG_NULL    | NON_NULL_MASK;
-    private static final byte FLOAT_NOT_NULL   = FLOAT_NULL   | NON_NULL_MASK;
-    private static final byte DOUBLE_NOT_NULL  = DOUBLE_NULL  | NON_NULL_MASK;
-    private static final byte STRING_NOT_NULL  = STRING_NULL  | NON_NULL_MASK;
-    private static final byte BOOLEAN_NOT_NULL = BOOLEAN_NULL | NON_NULL_MASK;
-    private static final byte BLOB_NOT_NULL    = BLOB_NULL    | NON_NULL_MASK;
+    static final byte INT_NULL     = 1;
+    static final byte LONG_NULL    = 2;
+    static final byte FLOAT_NULL   = 3;
+    static final byte DOUBLE_NULL  = 4;
+    static final byte STRING_NULL  = 5;
+    static final byte BOOLEAN_NULL = 6;
+    static final byte BLOB_NULL    = 7;
+
+    static final byte INT_NOT_NULL     = INT_NULL     | NON_NULL_MASK;
+    static final byte LONG_NOT_NULL    = LONG_NULL    | NON_NULL_MASK;
+    static final byte FLOAT_NOT_NULL   = FLOAT_NULL   | NON_NULL_MASK;
+    static final byte DOUBLE_NOT_NULL  = DOUBLE_NULL  | NON_NULL_MASK;
+    static final byte STRING_NOT_NULL  = STRING_NULL  | NON_NULL_MASK;
+    static final byte BOOLEAN_NOT_NULL = BOOLEAN_NULL | NON_NULL_MASK;
+    static final byte BLOB_NOT_NULL    = BLOB_NULL    | NON_NULL_MASK;
     
     private static final byte BOOLEAN_TRUE = 1;
     private static final byte BOOLEAN_FALSE = 0;
