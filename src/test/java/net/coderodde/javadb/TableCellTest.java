@@ -419,4 +419,22 @@ public class TableCellTest {
         assertTrue(Arrays.equals(tableCell.getBinaryData(), 
                                  pair.first.getBinaryData()));
     }
+
+    @Test(expected = BadDataFormatException.class) 
+    public void testDeserializationThrowsOnTooShortDataArray() {
+        bytes = new byte[]{ TableCell.INT_NOT_NULL, 1, 2, 3 };
+        TableCell.deserialize(bytes, 0);
+    }
+    
+    @Test(expected = BadDataFormatException.class) 
+    public void testDeserializationThorwsOnTooShortDataArray2() {
+        bytes = new byte[]{ 0, 0, TableCell.FLOAT_NOT_NULL, 4, 5, 6 };
+        TableCell.deserialize(bytes, 2);
+    }
+    
+    @Test(expected = BadDataFormatException.class)
+    public void testThrowsOnBadBooleanEncoding() {
+        bytes = new byte[]{ TableCell.BOOLEAN_NOT_NULL, 2 };
+        TableCell.deserialize(bytes, 0);
+    }
 }

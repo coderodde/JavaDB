@@ -278,10 +278,7 @@ public final class TableCell {
         int stringLength = string.length();
         
         // Emit the string length in characters:
-        byteList.add((byte) (stringLength & 0xff));
-        byteList.add((byte)((stringLength >>> 8)  & 0xff));
-        byteList.add((byte)((stringLength >>> 16) & 0xff));
-        byteList.add((byte)((stringLength >>> 24) & 0xff));
+        emitLength(byteList, stringLength);
         
         // Emit the actual string:
         for (int i = 0; i != stringLength; ++i) {
@@ -318,10 +315,7 @@ public final class TableCell {
         int blobLength = data.length;
         
         // Emit the length of the BLOB byte array:
-        byteList.add((byte)(blobLength & 0xff));
-        byteList.add((byte)((blobLength >>> 8) & 0xff));
-        byteList.add((byte)((blobLength >>> 16) & 0xff));
-        byteList.add((byte)((blobLength >>> 24) & 0xff));
+        emitLength(byteList, blobLength);
         
         // Emit the actual byte array:
         for (byte b : data) {
@@ -385,6 +379,13 @@ public final class TableCell {
                 throw new IllegalStateException(
                         "Invalid table cell type descriptor.");
         }
+    }
+    
+    private void emitLength(List<Byte> byteList, int length) {
+        byteList.add((byte) (length & 0xff));
+        byteList.add((byte)((length >>> 8)  & 0xff));
+        byteList.add((byte)((length >>> 16) & 0xff));
+        byteList.add((byte)((length >>> 24) & 0xff));
     }
     
     private static Pair<TableCell, Integer> deserializeInt(byte[] data,
@@ -569,7 +570,7 @@ public final class TableCell {
                 break;
                 
             default:
-                throw new IllegalStateException(
+                throw new BadDataFormatException(
                         "Unknown boolean literal encoding.");
         }
         
