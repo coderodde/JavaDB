@@ -2,6 +2,7 @@ package net.coderodde.javadb;
 
 import java.util.Arrays;
 import java.util.List;
+import net.coderodde.javadb.Misc.Pair;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -13,6 +14,8 @@ public class TableCellTest {
     
     private TableCell tableCell;
     private List<Byte> data;
+    private byte[] bytes;
+    private Pair<TableCell, Integer> pair;
     
     public TableCellTest() {
     }
@@ -292,7 +295,51 @@ public class TableCellTest {
     }
     
     @Test
-    public void testDeserialize() {
-        
+    public void testDeserializeNullInt() {
+        bytes = new byte[]{ 0, TableCell.INT_NULL, 10 };
+        pair = TableCell.deserialize(bytes, 1);
+        assertNull(pair.first.getIntValue());
+    }
+    
+    @Test
+    public void testDeserializeNullLong() {
+        bytes = new byte[]{ 0, 0, TableCell.LONG_NULL, 11, 11 };
+        pair = TableCell.deserialize(bytes, 2);
+        assertNull(pair.first.getLongValue());
+    }
+    
+    @Test
+    public void testDeserializeNullFloat() {
+        bytes = new byte[]{ TableCell.FLOAT_NULL };
+        pair = TableCell.deserialize(bytes, 0);
+        assertNull(pair.first.getFloatValue());
+    }
+    
+    @Test
+    public void testDeserializeNullDouble() {
+        bytes = new byte[]{ TableCell.DOUBLE_NULL, 10 };
+        pair = TableCell.deserialize(bytes, 0);
+        assertNull(pair.first.getDoubleValue());
+    }
+    
+    @Test
+    public void testDeserializeNullString() {
+        bytes = new byte[]{ 0, TableCell.STRING_NULL, 10 };
+        pair = TableCell.deserialize(bytes, 1);
+        assertNull(pair.first.getStringValue());
+    }
+    
+    @Test
+    public void testDeserializeNullBoolean() {
+        bytes = new byte[]{ TableCell.BOOLEAN_NULL };
+        pair = TableCell.deserialize(bytes, 0);
+        assertNull(pair.first.getBooleanValue());
+    }
+    
+    @Test
+    public void testDeserializeNullBlob() {
+        bytes = new byte[]{ 0, 0, 0, TableCell.BLOB_NULL };
+        pair = TableCell.deserialize(bytes, 3);
+        assertNull(pair.first.getBinaryData());
     }
 }
