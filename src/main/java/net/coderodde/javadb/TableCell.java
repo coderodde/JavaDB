@@ -545,6 +545,11 @@ public final class TableCell {
                                       byteArrayLength);
         
         byte[] byteArray = new byte[byteArrayLength];
+        
+        for (int index = 0; index != byteArrayLength; ++index) {
+            byteArray[index] = data[startIndex + index];
+        }
+        
         TableCell tableCell = new TableCell(byteArray);
         return new Pair<>(tableCell, Integer.BYTES + byteArrayLength);
     }

@@ -17,6 +17,16 @@ public class TableCellTest {
     private byte[] bytes;
     private Pair<TableCell, Integer> pair;
     
+    private static byte[] toArray(List<Byte> byteList) {
+        byte[] ret = new byte[byteList.size()];
+        
+        for (int i = 0; i != ret.length; ++i) {
+            ret[i] = byteList.get(i);
+        }
+        
+        return ret;
+    }
+    
     public TableCellTest() {
     }
     
@@ -341,5 +351,72 @@ public class TableCellTest {
         bytes = new byte[]{ 0, 0, 0, TableCell.BLOB_NULL };
         pair = TableCell.deserialize(bytes, 3);
         assertNull(pair.first.getBinaryData());
+    }
+    
+    @Test
+    public void testSerializeDeserializeInt() {
+        tableCell = new TableCell(100);
+        bytes = toArray(tableCell.serialize());
+        pair = TableCell.deserialize(bytes, 0);
+        assertEquals((Integer) Integer.BYTES, pair.second);
+        assertEquals(tableCell.getIntValue(), pair.first.getIntValue());
+    }
+    
+    @Test
+    public void testSerializeDeserializeLong() {
+        tableCell = new TableCell(200L);
+        bytes = toArray(tableCell.serialize());
+        pair = TableCell.deserialize(bytes, 0);
+        assertEquals((Integer) Long.BYTES, pair.second);
+        assertEquals(tableCell.getLongValue(), pair.first.getLongValue());
+    }
+    
+    @Test
+    public void testSerializeDeserializeFloat() {
+        tableCell = new TableCell(20.0f);
+        bytes = toArray(tableCell.serialize());
+        pair = TableCell.deserialize(bytes, 0);
+        assertEquals((Integer) Float.BYTES, pair.second);
+        assertEquals(tableCell.getFloatValue(), pair.first.getFloatValue());
+    }
+    
+    @Test
+    public void testSerializeDeserializeDouble() {
+        tableCell = new TableCell(10.0);
+        bytes = toArray(tableCell.serialize());
+        pair = TableCell.deserialize(bytes, 0);
+        assertEquals((Integer) Double.BYTES, pair.second);
+        assertEquals(tableCell.getDoubleValue(), pair.first.getDoubleValue());
+    }
+    
+    @Test
+    public void testSerializeDeserializeString() {
+        String fuckYeah = "fuck yeah";
+        tableCell = new TableCell(fuckYeah);
+        bytes = toArray(tableCell.serialize());
+        pair = TableCell.deserialize(bytes, 0);
+        assertEquals((Integer)(Integer.BYTES 
+                + Character.BYTES * fuckYeah.length()), pair.second);
+        assertEquals(tableCell.getStringValue(), pair.first.getStringValue());
+    }
+ 
+    @Test
+    public void testSerializeDeserializeBoolean() {
+        tableCell = new TableCell(true);
+        bytes = toArray(tableCell.serialize());
+        pair = TableCell.deserialize(bytes, 0);
+        assertEquals((Integer) 1, pair.second);
+        assertEquals(tableCell.getBooleanValue(), pair.first.getBooleanValue());
+    }
+    
+    @Test
+    public void testSerializeDeserializeBinaryData() {
+        byte[] shit = { 100, 90, 80, 70, 60 };
+        tableCell = new TableCell(shit);
+        bytes = toArray(tableCell.serialize());
+        pair = TableCell.deserialize(bytes, 0);
+        assertEquals((Integer)(Integer.BYTES + shit.length), pair.second);
+        assertTrue(Arrays.equals(tableCell.getBinaryData(), 
+                                 pair.first.getBinaryData()));
     }
 }
