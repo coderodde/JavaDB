@@ -1,5 +1,7 @@
 package net.coderodde.javadb;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -191,7 +193,7 @@ public final class TableCell {
         value = null;
     }
     
-    public List<Byte> serialize() {
+    public ByteBuffer serialize() {
         switch (getTableCellType()) {
             case TYPE_INT:
                 return serializeInt();
@@ -222,159 +224,128 @@ public final class TableCell {
         }
     }
     
-    private List<Byte> serializeInt() {
+    private ByteBuffer serializeInt() {
         if (value == null) {
-            return Arrays.asList(INT_NULL);
+            return ByteBuffer.allocate(1).put(INT_NULL);
         }
         
-        List<Byte> byteList = new ArrayList<>(Integer.BYTES + 1);
-        int primitiveValue = (Integer) value;
-        byteList.add(INT_NOT_NULL);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(Integer.BYTES + 1)
+                                          .order(ByteOrder.LITTLE_ENDIAN);
         
-        for (int i = 0; i != Integer.BYTES; ++i, primitiveValue >>>= 8) {
-            byteList.add((byte)(primitiveValue & 0xff));
-        }
-        
-        return byteList;
+        return byteBuffer.put(INT_NOT_NULL)
+                         .putInt((int) value);
     }
     
-    private List<Byte> serializeLong() {
+    private ByteBuffer serializeLong() {
         if (value == null) {
-            return Arrays.asList(LONG_NULL);
+            return ByteBuffer.allocate(1).put(LONG_NULL);
         }
         
-        List<Byte> byteList = new ArrayList<>(Long.BYTES + 1);
-        long primitiveValue = (Long) value;
-        byteList.add(LONG_NOT_NULL);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(Long.BYTES + 1)
+                                          .order(ByteOrder.LITTLE_ENDIAN);
         
-        for (int i = 0; i != Long.BYTES; ++i, primitiveValue >>>= 8) {
-            byteList.add((byte)(primitiveValue & 0xffL));
-        }
-            
-        return byteList;
+        return byteBuffer.put(LONG_NOT_NULL)
+                         .putLong((long) value);
     }
     
-    private List<Byte> serializeFloat() {
+    private ByteBuffer serializeFloat() {
         if (value == null) {
-            return Arrays.asList(FLOAT_NULL);
+            return ByteBuffer.allocate(1).put(FLOAT_NULL);
         }
         
-        List<Byte> byteList = new ArrayList<>(Float.BYTES + 1);
-        int primitiveValue = Float.floatToIntBits((Float) value);
-        byteList.add(FLOAT_NOT_NULL);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(Float.BYTES + 1)
+                                          .order(ByteOrder.LITTLE_ENDIAN);
         
-        for (int i = 0; i != Float.BYTES; ++i, primitiveValue >>>= 8) {
-            byteList.add((byte)(primitiveValue & 0xff));
-        }
-        
-        return byteList;
+        return byteBuffer.put(FLOAT_NOT_NULL)
+                         .putFloat((float) value);
     }
     
-    private List<Byte> serializeDouble() {
+    private ByteBuffer serializeDouble() {
         if (value == null) {
-            return Arrays.asList(DOUBLE_NULL);
-        } 
-        
-        List<Byte> byteList = new ArrayList<>(Double.BYTES + 1);
-        long primitiveValue = Double.doubleToLongBits((Double) value);
-        byteList.add(DOUBLE_NOT_NULL);
-        
-        for (int i = 0; i != Double.BYTES; ++i, primitiveValue >>>= 8) {
-            byteList.add((byte)(primitiveValue & 0xffL));
+            return ByteBuffer.allocate(1).put(DOUBLE_NULL);
         }
         
-        return byteList;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(Double.BYTES + 1)
+                                          .order(ByteOrder.LITTLE_ENDIAN);
+        
+        return byteBuffer.put(DOUBLE_NOT_NULL)
+                         .putDouble((double) value);
     }
     
-    private List<Byte> serializeString() {
+    private ByteBuffer serializeString() {
         if (value == null) {
-            return Arrays.asList(STRING_NULL);
+            return ByteBuffer.allocate(1).put(STRING_NULL);
         }
         
         String string = (String) value;
-        // Header byte, 32-bit string length, and actual string:
-        List<Byte> byteList = new ArrayList<>(Character.BYTES * string.length()
-                                              + Integer.BYTES + 1);
-        byteList.add(STRING_NOT_NULL);
+        ByteBuffer byteBuffer = 
+                ByteBuffer.allocate(
+                        1 + Integer.BYTES + Character.BYTES * string.length())
+                .order(ByteOrder.LITTLE_ENDIAN);
         
-        int stringLength = string.length();
+        byteBuffer.put(STRING_NOT_NULL)
+                  .putInt(string.length());
         
-        // Emit the string length in characters:
-        emitLength(byteList, stringLength);
-        
-        // Emit the actual string:
-        for (int i = 0; i != stringLength; ++i) {
-            char c = string.charAt(i);
-            short binaryChar = (short) c;
-            
-            byteList.add((byte)(binaryChar & 0xff));
-            byteList.add((byte)((binaryChar >>> 8) & 0xff));
+        for (int i = 0; i != string.length(); ++i) {
+            byteBuffer.putChar(string.charAt(i));
         }
         
-        return byteList;
+        return byteBuffer;
     }
     
-    private List<Byte> serializeBoolean() {
+    private ByteBuffer serializeBoolean() {
         if (value == null) {
-            return Arrays.asList(BOOLEAN_NULL);
+            return ByteBuffer.allocate(1).put(BOOLEAN_NULL);
         }
         
-        List<Byte> byteList = new ArrayList<>(2);
-        byteList.add(BOOLEAN_NOT_NULL);
-        byteList.add((Boolean) value ? BOOLEAN_TRUE : BOOLEAN_FALSE);
-        return byteList;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(2)
+                                          .order(ByteOrder.LITTLE_ENDIAN);
+        return byteBuffer.put(BOOLEAN_NOT_NULL)
+                         .put((boolean) value ? BOOLEAN_TRUE : BOOLEAN_FALSE);
     }
     
-    private List<Byte> serializeBinaryData() {
+    private ByteBuffer serializeBinaryData() {
         if (value == null) {
-            return Arrays.asList(BLOB_NULL);
+            return ByteBuffer.allocate(1).put(BLOB_NULL);
         }
         
         byte[] data = (byte[]) value;
-        List<Byte> byteList = new ArrayList<>(data.length + Integer.BYTES + 1);
-        byteList.add(BLOB_NOT_NULL);
+        ByteBuffer byteBuffer =
+                ByteBuffer.allocate(1 + Integer.BYTES + data.length)
+                          .order(ByteOrder.LITTLE_ENDIAN);
         
-        int blobLength = data.length;
-        
-        // Emit the length of the BLOB byte array:
-        emitLength(byteList, blobLength);
-        
-        // Emit the actual byte array:
-        for (byte b : data) {
-            byteList.add(b);
-        }
-        
-        return byteList;
+        return byteBuffer.put(BLOB_NOT_NULL)
+                         .putInt(data.length)
+                         .put(data);
     }
     
-    public static Pair<TableCell, Integer> deserialize(byte[] data,
+    public static Pair<TableCell, Integer> deserialize(ByteBuffer byteBuffer,
                                                        int startIndex) {
-        Objects.requireNonNull(data, "The input data byte array is null.");
-        checkTableCellValueFitsInData(data, startIndex, 1);
-        
-        byte tableCellType = data[startIndex++];
+        Objects.requireNonNull(byteBuffer, "The input data byte array is null.");
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, 1);
+        byte tableCellType = byteBuffer.get(startIndex++);
         
         switch (tableCellType) {
             case INT_NOT_NULL:
-                return deserializeInt(data, startIndex);
+                return deserializeInt(byteBuffer, startIndex);
                 
             case LONG_NOT_NULL:
-                return deserializeLong(data, startIndex);
+                return deserializeLong(byteBuffer, startIndex);
                 
             case FLOAT_NOT_NULL:
-                return deserializeFloat(data, startIndex);
+                return deserializeFloat(byteBuffer, startIndex);
                 
             case DOUBLE_NOT_NULL:
-                return deserializeDouble(data, startIndex);
+                return deserializeDouble(byteBuffer, startIndex);
                 
             case STRING_NOT_NULL:
-                return deserializeString(data, startIndex);
+                return deserializeString(byteBuffer, startIndex);
                 
             case BOOLEAN_NOT_NULL:
-                return deserializeBoolean(data, startIndex);
+                return deserializeBoolean(byteBuffer, startIndex);
                 
             case BLOB_NOT_NULL:
-                return deserializeBinaryData(data, startIndex);
+                return deserializeBinaryData(byteBuffer, startIndex);
                 
             case INT_NULL:
                 return new Pair<>(new TableCell(TableCellType.TYPE_INT), 0);
@@ -403,109 +374,34 @@ public final class TableCell {
         }
     }
     
-    private void emitLength(List<Byte> byteList, int length) {
-        byteList.add((byte) (length & 0xff));
-        byteList.add((byte)((length >>> 8)  & 0xff));
-        byteList.add((byte)((length >>> 16) & 0xff));
-        byteList.add((byte)((length >>> 24) & 0xff));
-    }
-    
-    private static Pair<TableCell, Integer> deserializeInt(byte[] data,
-                                                           int startIndex) {
-        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
-        int value;
-        
-        byte byte1 = data[startIndex];
-        byte byte2 = data[startIndex + 1];
-        byte byte3 = data[startIndex + 2];
-        byte byte4 = data[startIndex + 3];
-        
-        value  =  Byte.toUnsignedInt(byte1);
-        value |= (Byte.toUnsignedInt(byte2) << 8);
-        value |= (Byte.toUnsignedInt(byte3) << 16);
-        value |= (Byte.toUnsignedInt(byte4) << 24);
-        
-        value |= (((int)(byte2)) << 8);
-        value |= (((int)(byte3)) << 16);
-        value |= (((int)(byte4)) << 24);
-        
+    private static Pair<TableCell, Integer> 
+        deserializeInt(ByteBuffer byteBuffer, int startIndex) {
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, Integer.BYTES);
+        int value = byteBuffer.getInt(startIndex);
         TableCell tableCell = new TableCell(value);
         return new Pair<>(tableCell, Integer.BYTES);
     }
     
-    private static Pair<TableCell, Integer> deserializeLong(byte[] data,
-                                                            int startIndex) {
-        checkTableCellValueFitsInData(data, startIndex, Long.BYTES);
-        long value;
-        
-        byte byte1 = data[startIndex];
-        byte byte2 = data[startIndex + 1];
-        byte byte3 = data[startIndex + 2];
-        byte byte4 = data[startIndex + 3];
-        byte byte5 = data[startIndex + 4];
-        byte byte6 = data[startIndex + 5];
-        byte byte7 = data[startIndex + 6];
-        byte byte8 = data[startIndex + 7];
-        
-        value  =  Byte.toUnsignedLong(byte1);
-        value |= (Byte.toUnsignedLong(byte2) << 8);
-        value |= (Byte.toUnsignedLong(byte3) << 16);
-        value |= (Byte.toUnsignedLong(byte4) << 24);
-        value |= (Byte.toUnsignedLong(byte5) << 32);
-        value |= (Byte.toUnsignedLong(byte6) << 40);
-        value |= (Byte.toUnsignedLong(byte7) << 48);
-        value |= (Byte.toUnsignedLong(byte8) << 56);
-        
+    private static Pair<TableCell, Integer> 
+        deserializeLong(ByteBuffer byteBuffer, int startIndex) {
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, Long.BYTES);
+        long value = byteBuffer.getLong(startIndex);
         TableCell tableCell = new TableCell(value);
         return new Pair<>(tableCell, Long.BYTES);
     }
     
-    private static Pair<TableCell, Integer> deserializeFloat(byte[] data,
-                                                             int startIndex) {
-        checkTableCellValueFitsInData(data, startIndex, Float.BYTES);
-        
-        byte byte1 = data[startIndex];
-        byte byte2 = data[startIndex + 1];
-        byte byte3 = data[startIndex + 2];
-        byte byte4 = data[startIndex + 3];
-        
-        int floatValueAsInt = 0;
-        
-        floatValueAsInt  =  Byte.toUnsignedInt(byte1);
-        floatValueAsInt |= (Byte.toUnsignedInt(byte2) << 8);
-        floatValueAsInt |= (Byte.toUnsignedInt(byte3) << 16);
-        floatValueAsInt |= (Byte.toUnsignedInt(byte4) << 24);
-        
-        float value = Float.intBitsToFloat(floatValueAsInt);
+    private static Pair<TableCell, Integer> 
+        deserializeFloat(ByteBuffer byteBuffer, int startIndex) {
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, Float.BYTES);
+        float value = byteBuffer.getFloat(startIndex);
         TableCell tableCell = new TableCell(value);
         return new Pair<>(tableCell, Float.BYTES);
     }
     
-    private static Pair<TableCell, Integer> deserializeDouble(byte[] data,
-                                                              int startIndex) {
-        checkTableCellValueFitsInData(data, startIndex, Double.BYTES);
-        
-        byte byte1 = data[startIndex];
-        byte byte2 = data[startIndex + 1];
-        byte byte3 = data[startIndex + 2];
-        byte byte4 = data[startIndex + 3];
-        byte byte5 = data[startIndex + 4];
-        byte byte6 = data[startIndex + 5];
-        byte byte7 = data[startIndex + 6];
-        byte byte8 = data[startIndex + 7];
-        
-        long doubleValueAsLong = 0L;
-        
-        doubleValueAsLong  =  Byte.toUnsignedLong(byte1);
-        doubleValueAsLong |= (Byte.toUnsignedLong(byte2) << 8);
-        doubleValueAsLong |= (Byte.toUnsignedLong(byte3) << 16);
-        doubleValueAsLong |= (Byte.toUnsignedLong(byte4) << 24);
-        doubleValueAsLong |= (Byte.toUnsignedLong(byte5) << 32);
-        doubleValueAsLong |= (Byte.toUnsignedLong(byte6) << 40);
-        doubleValueAsLong |= (Byte.toUnsignedLong(byte7) << 48);
-        doubleValueAsLong |= (Byte.toUnsignedLong(byte8) << 56);
-        
-        double value = Double.longBitsToDouble(doubleValueAsLong);
+    private static Pair<TableCell, Integer> 
+        deserializeDouble(ByteBuffer byteBuffer, int startIndex) {
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, Double.BYTES);
+        double value = byteBuffer.getDouble(startIndex);
         TableCell tableCell = new TableCell(value);
         return new Pair<>(tableCell, Double.BYTES);
     }
@@ -524,29 +420,25 @@ public final class TableCell {
         return stringLength;
     }
     
-    private static Pair<TableCell, Integer> deserializeString(byte[] data,
-                                                              int startIndex) {
+    private static Pair<TableCell, Integer> 
+        deserializeString(ByteBuffer byteBuffer, int startIndex) {
         // First check that the string length descriptor fits in:
-        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
-        
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, Integer.BYTES);
         // Get the string length:
-        int stringLength = getLengthFromByteArray(data, startIndex);
+        int stringLength = byteBuffer.getInt(startIndex);
+        startIndex += Integer.BYTES;
         
         // Now check whether the actual string fits in the data array:
-        checkTableCellValueFitsInData(data,
-                                      startIndex += Integer.BYTES, 
+        checkTableCellValueFitsInByteBuffer(byteBuffer,
+                                      startIndex, 
                                       stringLength * Character.BYTES);
         
         StringBuilder sb = new StringBuilder(stringLength);
         
         for (int charIndex = 0; 
                 charIndex != stringLength; 
-                charIndex++, startIndex += 2) {
-            byte byte1 = data[startIndex];
-            byte byte2 = data[startIndex + 1];
-            char c = (char)((Byte.toUnsignedInt(byte2) << 8) |
-                             Byte.toUnsignedInt(byte1));
-            sb.append(c);
+                charIndex++, startIndex += Character.BYTES) {
+            sb.append(byteBuffer.getChar(startIndex));
         }
         
         TableCell tableCell = new TableCell(sb.toString());
@@ -555,34 +447,34 @@ public final class TableCell {
     }
         
     private static Pair<TableCell, Integer>
-        deserializeBinaryData(byte[] data, int startIndex) {
+        deserializeBinaryData(ByteBuffer byteBuffer, int startIndex) {
         // First check that the binary byte array length descriptor fits in:
-        checkTableCellValueFitsInData(data, startIndex, Integer.BYTES);
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, Integer.BYTES);
         
         // Get the byte array length:
-        int byteArrayLength = getLengthFromByteArray(data, startIndex);
+        int byteArrayLength = byteBuffer.getInt(startIndex);
         
         // Now check whether the actual byte array fits in the data array:
-        checkTableCellValueFitsInData(data, 
+        checkTableCellValueFitsInByteBuffer(byteBuffer, 
                                       startIndex += Integer.BYTES,
                                       byteArrayLength);
         
         byte[] byteArray = new byte[byteArrayLength];
         
         for (int index = 0; index != byteArrayLength; ++index) {
-            byteArray[index] = data[startIndex + index];
+            byteArray[index] = byteBuffer.get(startIndex + index);
         }
         
         TableCell tableCell = new TableCell(byteArray);
         return new Pair<>(tableCell, Integer.BYTES + byteArrayLength);
     }
     
-    private static Pair<TableCell, Integer> deserializeBoolean(byte[] data,
-                                                               int startIndex) {
-        checkTableCellValueFitsInData(data, startIndex, 1);
+    private static Pair<TableCell, Integer> 
+        deserializeBoolean(ByteBuffer byteBuffer, int startIndex) {
+        checkTableCellValueFitsInByteBuffer(byteBuffer, startIndex, 1);
         boolean value;
         
-        switch (data[startIndex]) {
+        switch (byteBuffer.get(startIndex)) {
             case BOOLEAN_TRUE:
                 value = true;
                 break;
@@ -600,15 +492,16 @@ public final class TableCell {
         return new Pair<>(tableCell, 1);
     }
     
-    private static void checkTableCellValueFitsInData(byte[] data,
-                                                      int startIndex,
-                                                      int cellValueLength) {
-        if (startIndex + cellValueLength > data.length) {
+    private static void 
+        checkTableCellValueFitsInByteBuffer(ByteBuffer byteBuffer,
+                                            int startIndex,
+                                            int cellValueLength) {
+        if (startIndex + cellValueLength > byteBuffer.capacity()) {
             throw new BadDataFormatException(
                     "The data of expected length does not fit in the byte " +
-                    "array. Start index: " + startIndex + 
+                    "buffer. Start index: " + startIndex + 
                     ", cell value length: " + cellValueLength + 
-                    ", data array length: " + data.length);
+                    ", byte buffer capacity: " + byteBuffer.capacity() + ".");
         }
     }
     

@@ -1,5 +1,7 @@
 package net.coderodde.javadb;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
 import net.coderodde.javadb.Misc.Pair;
@@ -13,18 +15,12 @@ import static org.junit.Assert.*;
 public class TableCellTest {
     
     private TableCell tableCell;
-    private List<Byte> data;
+    private ByteBuffer data;
     private byte[] bytes;
     private Pair<TableCell, Integer> pair;
     
-    private static byte[] toArray(List<Byte> byteList) {
-        byte[] ret = new byte[byteList.size()];
-        
-        for (int i = 0; i != ret.length; ++i) {
-            ret[i] = byteList.get(i);
-        }
-        
-        return ret;
+    private static byte[] toArray(ByteBuffer byteBuffer) {
+        return byteBuffer.array();
     }
     
     public TableCellTest() {
@@ -252,104 +248,111 @@ public class TableCellTest {
     public void testSerializeNullInt() {
         tableCell = new TableCell(TableCellType.TYPE_INT);
         data = tableCell.serialize();
-        assertEquals(1, data.size());
-        assertEquals((Byte) TableCell.INT_NULL, data.get(0));
+        assertEquals(1, data.capacity());
+        assertEquals(TableCell.INT_NULL, data.get(0));
     }
     
     @Test
     public void testSerializeNullLong() {
         tableCell = new TableCell(TableCellType.TYPE_LONG);
         data = tableCell.serialize();
-        assertEquals(1, data.size());
-        assertEquals((Byte) TableCell.LONG_NULL, data.get(0));
+        assertEquals(1, data.capacity());
+        assertEquals(TableCell.LONG_NULL, data.get(0));
     }
     
     @Test
     public void testSerializeNullFloat() {
         tableCell = new TableCell(TableCellType.TYPE_FLOAT);
         data = tableCell.serialize();
-        assertEquals(1, data.size());
-        assertEquals((Byte) TableCell.FLOAT_NULL, data.get(0));
+        assertEquals(1, data.capacity());
+        assertEquals(TableCell.FLOAT_NULL, data.get(0));
     }
 
     @Test
     public void testSerializeNullDouble() {
         tableCell = new TableCell(TableCellType.TYPE_DOUBLE);
         data = tableCell.serialize();
-        assertEquals(1, data.size());
-        assertEquals((Byte) TableCell.DOUBLE_NULL, data.get(0));
+        assertEquals(1, data.capacity());
+        assertEquals(TableCell.DOUBLE_NULL, data.get(0));
     }
     
     @Test
     public void testSerializeNullString() {
         tableCell = new TableCell(TableCellType.TYPE_STRING);
         data = tableCell.serialize();
-        assertEquals(1, data.size());
-        assertEquals((Byte) TableCell.STRING_NULL, data.get(0));
+        assertEquals(1, data.capacity());
+        assertEquals(TableCell.STRING_NULL, data.get(0));
     }
     
     @Test
     public void testSerializeNullBoolean() {
         tableCell = new TableCell(TableCellType.TYPE_BOOLEAN);
         data = tableCell.serialize();
-        assertEquals(1, data.size());
-        assertEquals((Byte) TableCell.BOOLEAN_NULL, data.get(0));
+        assertEquals(1, data.capacity());
+        assertEquals(TableCell.BOOLEAN_NULL, data.get(0));
     }
     
     @Test
     public void testSerializeNullBlob() {
         tableCell = new TableCell(TableCellType.TYPE_BINARY);
         data = tableCell.serialize();
-        assertEquals(1, data.size());
-        assertEquals((Byte) TableCell.BLOB_NULL, data.get(0));
+        assertEquals(1, data.capacity());
+        assertEquals(TableCell.BLOB_NULL, data.get(0));
     }
     
     @Test
     public void testDeserializeNullInt() {
         bytes = new byte[]{ 0, TableCell.INT_NULL, 10 };
-        pair = TableCell.deserialize(bytes, 1);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        pair = TableCell.deserialize(byteBuffer, 1);
         assertNull(pair.first.getIntValue());
     }
     
     @Test
     public void testDeserializeNullLong() {
         bytes = new byte[]{ 0, 0, TableCell.LONG_NULL, 11, 11 };
-        pair = TableCell.deserialize(bytes, 2);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        pair = TableCell.deserialize(byteBuffer, 2);
         assertNull(pair.first.getLongValue());
     }
     
     @Test
     public void testDeserializeNullFloat() {
         bytes = new byte[]{ TableCell.FLOAT_NULL };
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        pair = TableCell.deserialize(byteBuffer, 0);
         assertNull(pair.first.getFloatValue());
     }
     
     @Test
     public void testDeserializeNullDouble() {
         bytes = new byte[]{ TableCell.DOUBLE_NULL, 10 };
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        pair = TableCell.deserialize(byteBuffer, 0);
         assertNull(pair.first.getDoubleValue());
     }
     
     @Test
     public void testDeserializeNullString() {
         bytes = new byte[]{ 0, TableCell.STRING_NULL, 10 };
-        pair = TableCell.deserialize(bytes, 1);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        pair = TableCell.deserialize(byteBuffer, 1);
         assertNull(pair.first.getStringValue());
     }
     
     @Test
     public void testDeserializeNullBoolean() {
         bytes = new byte[]{ TableCell.BOOLEAN_NULL };
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        pair = TableCell.deserialize(byteBuffer, 0);
         assertNull(pair.first.getBooleanValue());
     }
     
     @Test
     public void testDeserializeNullBlob() {
         bytes = new byte[]{ 0, 0, 0, TableCell.BLOB_NULL };
-        pair = TableCell.deserialize(bytes, 3);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        pair = TableCell.deserialize(byteBuffer, 3);
         assertNull(pair.first.getBinaryData());
     }
     
@@ -357,7 +360,10 @@ public class TableCellTest {
     public void testSerializeDeserializeInt() {
         tableCell = new TableCell(100);
         bytes = toArray(tableCell.serialize());
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        
+        pair = TableCell.deserialize(bb, 0);
         assertEquals((Integer) Integer.BYTES, pair.second);
         assertEquals(tableCell.getIntValue(), pair.first.getIntValue());
     }
@@ -366,7 +372,10 @@ public class TableCellTest {
     public void testSerializeDeserializeLong() {
         tableCell = new TableCell(200L);
         bytes = toArray(tableCell.serialize());
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        
+        pair = TableCell.deserialize(bb, 0);
         assertEquals((Integer) Long.BYTES, pair.second);
         assertEquals(tableCell.getLongValue(), pair.first.getLongValue());
     }
@@ -375,7 +384,10 @@ public class TableCellTest {
     public void testSerializeDeserializeFloat() {
         tableCell = new TableCell(20.0f);
         bytes = toArray(tableCell.serialize());
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        
+        pair = TableCell.deserialize(bb, 0);
         assertEquals((Integer) Float.BYTES, pair.second);
         assertEquals(tableCell.getFloatValue(), pair.first.getFloatValue());
     }
@@ -384,7 +396,10 @@ public class TableCellTest {
     public void testSerializeDeserializeDouble() {
         tableCell = new TableCell(10.0);
         bytes = toArray(tableCell.serialize());
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        
+        pair = TableCell.deserialize(bb, 0);
         assertEquals((Integer) Double.BYTES, pair.second);
         assertEquals(tableCell.getDoubleValue(), pair.first.getDoubleValue());
     }
@@ -394,7 +409,10 @@ public class TableCellTest {
         String fuckYeah = "fuck yeah";
         tableCell = new TableCell(fuckYeah);
         bytes = toArray(tableCell.serialize());
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        
+        pair = TableCell.deserialize(bb, 0);
         assertEquals((Integer)(Integer.BYTES 
                 + Character.BYTES * fuckYeah.length()), pair.second);
         assertEquals(tableCell.getStringValue(), pair.first.getStringValue());
@@ -404,7 +422,10 @@ public class TableCellTest {
     public void testSerializeDeserializeBoolean() {
         tableCell = new TableCell(true);
         bytes = toArray(tableCell.serialize());
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        
+        pair = TableCell.deserialize(bb, 0);
         assertEquals((Integer) 1, pair.second);
         assertEquals(tableCell.getBooleanValue(), pair.first.getBooleanValue());
     }
@@ -414,7 +435,10 @@ public class TableCellTest {
         byte[] shit = { 100, 90, 80, 70, 60 };
         tableCell = new TableCell(shit);
         bytes = toArray(tableCell.serialize());
-        pair = TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        
+        pair = TableCell.deserialize(bb, 0);
         assertEquals((Integer)(Integer.BYTES + shit.length), pair.second);
         assertTrue(Arrays.equals(tableCell.getBinaryData(), 
                                  pair.first.getBinaryData()));
@@ -423,18 +447,21 @@ public class TableCellTest {
     @Test(expected = BadDataFormatException.class) 
     public void testDeserializationThrowsOnTooShortDataArray() {
         bytes = new byte[]{ TableCell.INT_NOT_NULL, 1, 2, 3 };
-        TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        TableCell.deserialize(bb, 0);
     }
     
     @Test(expected = BadDataFormatException.class) 
     public void testDeserializationThorwsOnTooShortDataArray2() {
         bytes = new byte[]{ 0, 0, TableCell.FLOAT_NOT_NULL, 4, 5, 6 };
-        TableCell.deserialize(bytes, 2);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        TableCell.deserialize(bb, 2);
     }
     
     @Test(expected = BadDataFormatException.class)
     public void testThrowsOnBadBooleanEncoding() {
         bytes = new byte[]{ TableCell.BOOLEAN_NOT_NULL, 2 };
-        TableCell.deserialize(bytes, 0);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        TableCell.deserialize(bb, 0);
     }
 }
