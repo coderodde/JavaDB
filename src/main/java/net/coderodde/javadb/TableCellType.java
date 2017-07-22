@@ -58,6 +58,10 @@ public enum TableCellType {
         return typeName;
     }
     
+    public byte getTypeId() {
+        return typeId;
+    }
+    
     public static TableCellType getTableCellType(byte typeId) {
         switch (typeId) {
             case 1:
