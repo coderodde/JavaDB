@@ -29,10 +29,8 @@ public final class Database {
     private File file;
     
     public Database(String databaseName) {
-        this.databaseName = 
-                Objects.requireNonNull(
-                        databaseName, 
-                        "The database name is null.");
+        Objects.requireNonNull(databaseName, "The database name is null.");
+        this.databaseName = checkDatabaseName(databaseName);
     }
     
     public String getDatabaseName() {
@@ -319,5 +317,16 @@ public final class Database {
         
         System.out.println(view1.toString());
         System.out.println(view2);
+    }
+    
+    private String checkDatabaseName(String databaseName) {
+        databaseName = databaseName.trim().toLowerCase();
+        
+        if (databaseName.equals("null")) {
+            throw new IllegalArgumentException(
+                    "\"null\" is not a valid database name.");
+        }
+        
+        return  databaseName;
     }
 }

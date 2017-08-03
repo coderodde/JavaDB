@@ -40,7 +40,9 @@ public final class TableColumnDescriptor {
      */
     public TableColumnDescriptor(String tableColumnName,
                                  TableCellType tableCellType) {
-        setTableColumnName(tableColumnName);
+        Objects.requireNonNull(tableColumnName, "Table column name is null.");
+        Objects.requireNonNull(tableCellType, "Table cell type is null.");
+        setTableColumnName(checkTableColumnName(tableColumnName));
         setTableCellType(tableCellType);
     }
     
@@ -140,5 +142,16 @@ public final class TableColumnDescriptor {
                         TableCellType.getTableCellType(typeId));
         
         return tableColumnDescriptor;
+    }
+    
+    private String checkTableColumnName(String tableColumnName) {
+        tableColumnName = tableColumnName.trim().toLowerCase();
+        
+        if (tableColumnName.equals("null")) {
+            throw new IllegalArgumentException(
+                    "\"null\" is not a valid table column name.");
+        }
+        
+        return  tableColumnName;
     }
 }

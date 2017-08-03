@@ -57,8 +57,8 @@ public final class Table implements Iterable<TableRow> {
      * @param tableName the name of the new table.
      */
     public Table(String tableName) {
-        this.tableName = Objects.requireNonNull(tableName, 
-                                                "The table name is null.");
+        Objects.requireNonNull(tableName, "The table name is null.");
+        this.tableName = checkTableName(tableName);
     }
     
     /**
@@ -630,5 +630,16 @@ public final class Table implements Iterable<TableRow> {
                         "The table column descriptor is not in this table.");
             }
         }
+    }
+    
+    private String checkTableName(String tableName) {
+        tableName = tableName.trim().toLowerCase();
+        
+        if (tableName.equals("null")) {
+            throw new IllegalArgumentException(
+                    "\"null\" is not a valid table name.");
+        }
+        
+        return  tableName;
     }
 }
